@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { View, TextInput, Image, Alert, ActivityIndicator, ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  TextInput,
+  Image,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform
+} from 'react-native';
 import { supabase } from '../utils/supabaseClient';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,16 +24,13 @@ export default function AddHouseScreen({ navigation }) {
   const [progress, setProgress] = useState(0);
 
   async function pickImages() {
-    console.log('pickImages called');
-    
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      console.log('Permission status:', status);
-      
+
       if (status !== 'granted') {
         Alert.alert(
-          'Permission Required', 
-          'Please allow access to your photos to select images.',
+          'Permission Required',
+          'Please allow access to your photos.',
           [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Open Settings', onPress: () => ImagePicker.requestMediaLibraryPermissionsAsync() }
@@ -35,22 +43,26 @@ export default function AddHouseScreen({ navigation }) {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         selectionLimit: Math.max(1, 8 - images.length),
-        quality: 0.7,
+        quality: 0.8,
         aspect: [4, 3],
         allowsEditing: false,
       });
 
-      console.log('Image picker result:', result);
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (!result.canceled && result.assets?.length > 0) {
         const validImages = [];
+
         for (const asset of result.assets) {
-          const response = await fetch(asset.uri, { method: 'HEAD' });
-          const size = response.headers.get('content-length');
-          if (size !== '0') {
+          if (asset.uri) {
+            console.log('Asset info:', {
+              uri: asset.uri,
+              fileSize: asset.fileSize,
+              type: asset.type,
+              width: asset.width,
+              height: asset.height
+            });
             validImages.push(asset.uri);
           } else {
-            console.warn('Skipping 0-byte image:', asset.uri);
+            console.warn('Invalid asset detected:', asset);
           }
         }
 
@@ -59,18 +71,19 @@ export default function AddHouseScreen({ navigation }) {
             const combined = [...prev, ...validImages];
             return combined.slice(0, 8);
           });
-          Alert.alert('Success', `${validImages.length} image(s) added successfully!`);
+          Alert.alert('Success', `${validImages.length} image(s) added.`);
         } else {
-          Alert.alert('Error', 'All selected images were empty. Please try again.');
+          Alert.alert('Error', 'All selected images were invalid.');
         }
       } else if (result.canceled) {
-        console.log('User canceled image selection');
+        console.log('Image selection canceled');
       } else {
-        Alert.alert('Error', 'No images were selected. Please try again.');
+        Alert.alert('Error', 'No images selected.');
       }
+
     } catch (error) {
       console.error('Error picking images:', error);
-      Alert.alert('Error', 'Failed to open image picker. Please try again.');
+      Alert.alert('Error', 'Failed to pick images.');
     }
   }
 
@@ -78,16 +91,66 @@ export default function AddHouseScreen({ navigation }) {
     setImages(prev => prev.filter((_, i) => i !== index));
   }
 
+  // Simple FormData upload function
+  async function uploadImageWithFormData(uri, path) {
+    try {
+      console.log(`Uploading image: ${uri}`);
+      
+      const formData = new FormData();
+      
+      // Get file extension
+      const fileExtension = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const mimeType = fileExtension === 'png' ? 'image/png' : 'image/jpeg';
+      
+      // Create file object for FormData
+      formData.append('file', {
+        uri: uri,
+        type: mimeType,
+        name: `upload.${fileExtension}`,
+      });
+
+      console.log(`Uploading to path: ${path} with type: ${mimeType}`);
+
+      // Upload using Supabase storage
+      const { data, error: uploadError } = await supabase
+        .storage
+        .from('house-images')
+        .upload(path, formData, {
+          contentType: mimeType,
+          upsert: false,
+          cacheControl: '3600',
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('Upload successful:', data);
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase
+        .storage
+        .from('house-images')
+        .getPublicUrl(path);
+
+      console.log('Public URL:', publicUrl);
+      return publicUrl;
+      
+    } catch (error) {
+      console.error('FormData upload error:', error);
+      throw error;
+    }
+  }
+
   async function uploadHouse() {
-    console.log('uploadHouse called');
-    
     if (!title.trim() || !desc.trim() || !phone.trim()) {
-      Alert.alert('Missing Information', 'Please fill in all required fields (Title, Description, Phone)');
+      Alert.alert('Missing Fields', 'Fill in all required fields.');
       return;
     }
 
     if (images.length === 0) {
-      Alert.alert('No Images', 'Please add at least one image');
+      Alert.alert('No Images', 'Please add at least one image.');
       return;
     }
 
@@ -96,60 +159,59 @@ export default function AddHouseScreen({ navigation }) {
       setProgress(0);
 
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError) throw authError;
-
-      const imageUrls = [];
-      for (let i = 0; i < images.length; i++) {
-        const uri = images[i];
-        console.log(`Uploading image ${i + 1}/${images.length}`);
-        
-        const timestamp = Date.now();
-        const randomString = Math.random().toString(36).substring(2, 8);
-        const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
-        const path = `houses/${timestamp}_${randomString}_${i}.${fileExt}`;
-
-        const response = await fetch(uri);
-        if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
-        
-        const blob = await response.blob();
-        if (blob.size === 0) throw new Error(`Image ${i + 1} is empty (0 bytes)`);
-
-        const { error: uploadError } = await supabase.storage
-          .from('house-images')
-          .upload(path, blob, {
-            contentType: blob.type || `image/${fileExt}`,
-            upsert: false,
-            cacheControl: '3600'
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('house-images')
-          .getPublicUrl(path);
-
-        imageUrls.push(publicUrl);
-        setProgress(Math.round(((i + 1) / images.length) * 100));
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw authError;
       }
 
-      // CORRECTED INSERT - using only image_url
-      const { error } = await supabase.from('houses').insert([{
+      const imageUrls = [];
+
+      for (let i = 0; i < images.length; i++) {
+        const uri = images[i];
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(2, 8);
+        const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
+        const path = `houses/${timestamp}_${random}_${i}.${ext}`;
+
+        try {
+          console.log(`Processing image ${i + 1}/${images.length}`);
+          
+          const publicUrl = await uploadImageWithFormData(uri, path);
+          imageUrls.push(publicUrl);
+          
+          // Update progress
+          const currentProgress = Math.round(((i + 1) / images.length) * 100);
+          setProgress(currentProgress);
+          console.log(`Progress: ${currentProgress}%`);
+          
+        } catch (imageError) {
+          console.error(`Error processing image ${i + 1}:`, imageError);
+          throw new Error(`Failed to upload image ${i + 1}: ${imageError.message}`);
+        }
+      }
+
+      console.log('All images uploaded successfully:', imageUrls);
+
+      // Insert house record
+      const { error: insertError } = await supabase.from('houses').insert([{
         title: title.trim(),
         description: desc.trim(),
-        image_url: imageUrls[0], // Only storing the first image URL
+        image_url: imageUrls[0],
         phone: phone.trim(),
         created_at: new Date().toISOString(),
         ...(user && { user_id: user.id })
       }]);
 
-      if (error) throw error;
+      if (insertError) {
+        console.error('Database insert error:', insertError);
+        throw insertError;
+      }
 
-      Alert.alert(
-        'Success', 
-        'Property listed successfully!', 
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      Alert.alert('Success', 'Property listed successfully!', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
 
+      // Reset form
       setTitle('');
       setDesc('');
       setPhone('');
@@ -158,11 +220,7 @@ export default function AddHouseScreen({ navigation }) {
 
     } catch (error) {
       console.error('Upload error:', error);
-      Alert.alert(
-        'Upload Failed', 
-        error.message || 'An error occurred. Please try again.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Upload Failed', error.message || 'Please try again.');
     } finally {
       setLoading(false);
     }
@@ -175,9 +233,8 @@ export default function AddHouseScreen({ navigation }) {
         value={title}
         onChangeText={setTitle}
         style={styles.input}
-        maxLength={100}
       />
-      
+
       <TextInput
         placeholder="Property Description *"
         value={desc}
@@ -185,20 +242,18 @@ export default function AddHouseScreen({ navigation }) {
         multiline
         numberOfLines={4}
         style={[styles.input, styles.descInput]}
-        maxLength={500}
       />
-      
+
       <TextInput
         placeholder="Contact Phone Number *"
         value={phone}
         onChangeText={setPhone}
         keyboardType="phone-pad"
         style={styles.input}
-        maxLength={15}
       />
 
       <View style={styles.imageSection}>
-        <Text style={styles.sectionTitle}>Property Images ({images.length}/8) *</Text>
+        <Text style={styles.sectionTitle}>Property Images ({images.length}/8)</Text>
         <TouchableOpacity
           style={[styles.addButton, images.length >= 8 && styles.disabledButton]}
           onPress={pickImages}
@@ -215,18 +270,10 @@ export default function AddHouseScreen({ navigation }) {
         <View style={styles.imageGrid}>
           {images.map((uri, index) => (
             <View key={`${uri}_${index}`} style={styles.imageWrapper}>
-              <Image 
-                source={{ uri }} 
-                style={styles.image}
-                onError={(error) => {
-                  console.error('Image load error:', error.nativeEvent);
-                  Alert.alert('Error', `Failed to preview image ${index + 1}`);
-                }}
-              />
+              <Image source={{ uri }} style={styles.image} />
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => removeImage(index)}
-                activeOpacity={0.7}
               >
                 <Ionicons name="close" size={18} color="#FF3B30" />
               </TouchableOpacity>
@@ -245,13 +292,9 @@ export default function AddHouseScreen({ navigation }) {
       )}
 
       <TouchableOpacity
-        style={[
-          styles.submitButton, 
-          (loading || images.length === 0) && styles.disabledButton
-        ]}
+        style={[styles.submitButton, (loading || images.length === 0) && styles.disabledButton]}
         onPress={uploadHouse}
         disabled={loading || images.length === 0}
-        activeOpacity={0.8}
       >
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -304,6 +347,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  disabledButton: {
+    backgroundColor: '#ccc',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+  },
   imageGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -319,7 +370,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    aspectRatio: 4/3,
+    aspectRatio: 4 / 3,
     borderRadius: 8,
   },
   deleteButton: {
@@ -329,11 +380,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 12,
     padding: 4,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
   submitButton: {
     backgroundColor: '#34C759',
@@ -341,14 +387,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
-  },
-  disabledButton: {
-    backgroundColor: '#cccccc',
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
   },
   loadingContainer: {
     flexDirection: 'row',
