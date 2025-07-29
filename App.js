@@ -1,7 +1,9 @@
 import React from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+
 import SplashScreen from './src/screens/SplashScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -18,96 +20,85 @@ const Stack = createStackNavigator();
 function AppNavigator() {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return <SplashScreen />;
-  }
-
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#007AFF',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
-      >
-        {user ? (
-          <>
-            <Stack.Screen
-              name="Home"
-              component={HomeScreen}
-              options={{
-                title: 'Property Manager',
-                headerLeft: null,
-              }}
-            />
-            <Stack.Screen
-              name="AddHouse"
-              component={AddHouseScreen}
-              options={{
-                title: 'Add Property',
-                headerBackTitleVisible: false,
-              }}
-            />
-            <Stack.Screen
-              name="HouseDetail"
-              component={HouseDetailScreen}
-              options={{
-                title: 'Property Details',
-              }}
-            />
-            <Stack.Screen
-              name="Explore"
-              component={ExploreScreen}
-              options={{
-                title: 'Explore Properties',
-              }}
-            />
-            <Stack.Screen
-              name="Wishlist"
-              component={WishlistScreen}
-              options={{
-                title: 'Your Wishlist',
-              }}
-            />
-            <Stack.Screen
-              name="Profile"
-              component={ProfileScreen}
-              options={{
-                title: 'Your Profile',
-              }}
-            />
-            <Stack.Screen
-              name="Help"
-              component={HelpScreen}
-              options={{
-                title: 'Help Center',
-              }}
-            />
-            <Stack.Screen
-              name="Contact"
-              component={ContactScreen}
-              options={{
-                title: 'Contact Us',
-              }}
-            />
-          </>
-        ) : (
+    <>
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName="Splash"
+          screenOptions={{
+            headerStyle: { backgroundColor: '#007AFF' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontWeight: 'bold' },
+          }}
+        >
           <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{
-              title: 'Welcome',
-              headerShown: false,
-            }}
+            name="Splash"
+            component={SplashScreen}
+            options={{ headerShown: false }}
           />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+
+          {!user && (
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ headerShown: false }}
+            />
+          )}
+
+          {user && (
+            <>
+              <Stack.Screen
+                name="Home"
+                component={HomeScreen}
+                options={{ title: 'Property Manager', headerLeft: null }}
+              />
+              <Stack.Screen
+                name="AddHouse"
+                component={AddHouseScreen}
+                options={{ title: 'Add Property' }}
+              />
+              <Stack.Screen
+                name="HouseDetail"
+                component={HouseDetailScreen}
+                options={{ title: 'Property Details' }}
+              />
+              <Stack.Screen
+                name="Explore"
+                component={ExploreScreen}
+                options={{ title: 'Explore Properties' }}
+              />
+              <Stack.Screen
+                name="Wishlist"
+                component={WishlistScreen}
+                options={{ title: 'Your Wishlist' }}
+              />
+              <Stack.Screen
+                name="Profile"
+                component={ProfileScreen}
+                options={{ title: 'Your Profile' }}
+              />
+              <Stack.Screen
+                name="Help"
+                component={HelpScreen}
+                options={{ title: 'Help Center' }}
+              />
+              <Stack.Screen
+                name="Contact"
+                component={ContactScreen}
+                options={{ title: 'Contact Us' }}
+              />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+
+      {/* ✅ Global Loading Overlay */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      )}
+    </>
   );
 }
 
@@ -118,3 +109,13 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+});
