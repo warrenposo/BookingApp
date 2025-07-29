@@ -10,6 +10,8 @@ import HouseDetailScreen from './src/screens/HouseDetailScreen';
 import ExploreScreen from './src/screens/ExploreScreen';
 import WishlistScreen from './src/screens/WishlistScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import ContactScreen from './src/screens/ContactScreen';
+import HelpScreen from './src/screens/HelpScreen';
 
 const Stack = createStackNavigator();
 
@@ -77,6 +79,20 @@ function AppNavigator() {
               component={ProfileScreen}
               options={{
                 title: 'Your Profile',
+              }}
+            />
+            <Stack.Screen
+              name="Help"
+              component={HelpScreen}
+              options={{
+                title: 'Help Center',
+              }}
+            />
+            <Stack.Screen
+              name="Contact"
+              component={ContactScreen}
+              options={{
+                title: 'Contact Us',
               }}
             />
           </>

@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../utils/supabaseClient';
 
 const ProfileScreen = ({ navigation }) => {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+      } catch (error) {
+        Alert.alert('Error', error.message);
+      }
+    };
+
+    fetchUser();
+  }, []);
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -26,8 +40,12 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.profileIcon}>
             <Ionicons name="person" size={48} color="#2563eb" />
           </View>
-          <Text style={styles.profileName}>User Name</Text>
-          <Text style={styles.profileEmail}>user@example.com</Text>
+          {user && (
+            <>
+              <Text style={styles.profileName}>{user.email}</Text>
+              <Text style={styles.profileEmail}>{user.email}</Text>
+            </>
+          )}
         </View>
         
         <View style={styles.menuContainer}>
