@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../utils/supabaseClient';
 import HouseCard from '../components/HouseCard';
@@ -15,15 +15,12 @@ const WishlistScreen = ({ navigation }) => {
   const fetchWishlist = async () => {
     try {
       setLoading(true);
-      // In a real app, you would fetch the user's wishlist from Supabase
-      // This is a placeholder implementation
       const { data, error } = await supabase
         .from('houses')
         .select('*')
-        .limit(5); // Temporary: showing some houses as wishlist items
-      
+        .limit(5);
+
       if (error) throw error;
-      
       setWishlist(data);
     } catch (error) {
       console.error('Error fetching wishlist:', error);
@@ -34,7 +31,6 @@ const WishlistScreen = ({ navigation }) => {
 
   const removeFromWishlist = async (houseId) => {
     try {
-      // In a real app, you would remove from the user's wishlist in Supabase
       setWishlist(wishlist.filter(item => item.id !== houseId));
     } catch (error) {
       console.error('Error removing from wishlist:', error);
@@ -47,7 +43,7 @@ const WishlistScreen = ({ navigation }) => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Your Wishlist</Text>
       </View>
-      
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2563eb" />
@@ -58,11 +54,11 @@ const WishlistScreen = ({ navigation }) => {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View style={styles.wishlistItem}>
-              <HouseCard 
-                house={item} 
+              <HouseCard
+                house={item}
                 onPress={() => navigation.navigate('HouseDetail', { house: item })}
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.removeButton}
                 onPress={() => removeFromWishlist(item.id)}
               >

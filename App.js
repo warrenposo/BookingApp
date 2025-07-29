@@ -7,6 +7,9 @@ import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import AddHouseScreen from './src/screens/AddHouseScreen';
 import HouseDetailScreen from './src/screens/HouseDetailScreen';
+import ExploreScreen from './src/screens/ExploreScreen';
+import WishlistScreen from './src/screens/WishlistScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -53,6 +56,27 @@ function AppNavigator() {
               component={HouseDetailScreen}
               options={{
                 title: 'Property Details',
+              }}
+            />
+            <Stack.Screen
+              name="Explore"
+              component={ExploreScreen}
+              options={{
+                title: 'Explore Properties',
+              }}
+            />
+            <Stack.Screen
+              name="Wishlist"
+              component={WishlistScreen}
+              options={{
+                title: 'Your Wishlist',
+              }}
+            />
+            <Stack.Screen
+              name="Profile"
+              component={ProfileScreen}
+              options={{
+                title: 'Your Profile',
               }}
             />
           </>

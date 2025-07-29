@@ -11,7 +11,9 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  TextInput,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../utils/supabaseClient';
 import HouseCard from '../components/HouseCard';
 
@@ -35,6 +37,18 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+
+  const navigateToExplore = () => {
+    navigation.navigate('Explore');
+  };
+
+  const navigateToWishlist = () => {
+    navigation.navigate('Wishlist');
+  };
+
+  const navigateToProfile = () => {
+    navigation.navigate('Profile');
+  };
 
   useEffect(() => {
     fetchHouses();
@@ -112,6 +126,13 @@ export default function HomeScreen({ navigation }) {
 
   const renderHeader = () => (
     <View style={styles.header}>
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search properties..."
+          placeholderTextColor={COLORS.textSecondary}
+        />
+      </View>
       <View style={styles.headerContent}>
         <Text style={styles.headerTitle}>Properties</Text>
         <Text style={styles.headerSubtitle}>
@@ -140,43 +161,70 @@ export default function HomeScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
       
-      {renderHeader()}
+      {!loading && (
+        <FlatList
+          data={houses}
+          renderItem={renderHouseItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.listContainer}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={renderEmptyState}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[COLORS.primary]}
+            />
+          }
+        />
+      )}
       
-      <FlatList
-        data={houses}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderHouseItem}
-        contentContainerStyle={[
-          styles.listContainer,
-          houses.length === 0 && styles.emptyListContainer,
-        ]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
-          />
-        }
-        ListEmptyComponent={renderEmptyState}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
+      <View style={styles.tabContainer}>
+        <TouchableOpacity style={styles.tabButton} onPress={navigateToExplore}>
+          <Ionicons name="compass-outline" size={24} color="#2563eb" />
+          <Text style={styles.tabText}>Explore</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabButton} onPress={navigateToWishlist}>
+          <Ionicons name="heart-outline" size={24} color="#2563eb" />
+          <Text style={styles.tabText}>Wishlist</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabButton} onPress={navigateToProfile}>
+          <Ionicons name="person-outline" size={24} color="#2563eb" />
+          <Text style={styles.tabText}>Profile</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  tabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 15,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  tabButton: {
+    alignItems: 'center',
+  },
+  tabText: {
+    marginTop: 5,
+    fontSize: 12,
+    color: '#2563eb',
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    paddingBottom: 70, // Add padding to prevent content from being hidden behind tabs
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    flexDirection: 'column',
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
@@ -191,6 +239,20 @@ const styles = StyleSheet.create({
         elevation: 2,
       },
     }),
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  searchInput: {
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: COLORS.text,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   headerContent: {
     flex: 1,
