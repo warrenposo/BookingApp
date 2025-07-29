@@ -16,17 +16,17 @@ const ContactScreen = ({ navigation }) => {
       <ScrollView style={styles.content}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Email Support</Text>
-          <Text style={styles.sectionText}>Dummy email address will go here.</Text>
+          <Text style={styles.sectionText}>Info@multside.co.ke.</Text>
         </View>
         
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Phone Support</Text>
-          <Text style={styles.sectionText}>Dummy phone number will go here.</Text>
+          <Text style={styles.sectionText}>+254707168578.</Text>
         </View>
         
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Office Hours</Text>
-          <Text style={styles.sectionText}>Dummy office hours will go here.</Text>
+          <Text style={styles.sectionText}>Mon-Fri: 9:00 AM - 5:00 PM</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
