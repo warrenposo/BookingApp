@@ -14,6 +14,10 @@ import WishlistScreen from './src/screens/WishlistScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ContactScreen from './src/screens/ContactScreen';
 import HelpScreen from './src/screens/HelpScreen';
+import PaymentScreen from './src/screens/PaymentScreen';
+import BookingScreen from './src/screens/BookingScreen';
+import HostDashboardScreen from './src/screens/HostDashboardScreen';
+import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
 
 const Stack = createStackNavigator();
 
@@ -50,7 +54,7 @@ function AppNavigator() {
               <Stack.Screen
                 name="Home"
                 component={HomeScreen}
-                options={{ title: 'Property Manager', headerLeft: null }}
+                options={{ title: 'Home', headerShown: false }}
               />
               <Stack.Screen
                 name="AddHouse"
@@ -61,6 +65,26 @@ function AppNavigator() {
                 name="HouseDetail"
                 component={HouseDetailScreen}
                 options={{ title: 'Property Details' }}
+              />
+              <Stack.Screen
+                name="Payment"
+                component={PaymentScreen}
+                options={{ title: 'Upload Payment' }}
+              />
+              <Stack.Screen
+                name="Booking"
+                component={BookingScreen}
+                options={{ title: 'Book Property' }}
+              />
+              <Stack.Screen
+                name="HostDashboard"
+                component={HostDashboardScreen}
+                options={{ title: 'Host Dashboard' }}
+              />
+              <Stack.Screen
+                name="AdminDashboard"
+                component={AdminDashboardScreen}
+                options={{ title: 'Admin Dashboard' }}
               />
               <Stack.Screen
                 name="Explore"
